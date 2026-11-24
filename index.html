@@ -1,0 +1,647 @@
+<!doctype html>
+<html lang="ca">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="author" content="Laia González Fernández">
+<title>Matriu combinatòria</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:wght@500;600;700;800&family=Open+Sans:ital,wght@0,400;0,600;0,700;1,400&display=swap">
+<style>
+/* Layout: a la dreta (o a sota en mòbil) l'activitat que es va construint; a l'esquerra, la matriu i els passos per triar */
+:root{
+  --bg:#f6f7f8; --surface:#ffffff; --ink:#05161D; --ink-2:#3a4a52; --muted:#6b7a82; --line:#dfe4e7; --chip:#eef1f3;
+  --navy:#05161D; --mag:#C73B84; --on-navy:#ffffff;
+  --cA:#16807a; --cA-soft:#e3f1ef; --cB:#c47d12; --cB-soft:#fbf0dd; --cC:#c4463f; --cC-soft:#f9e4e2; --cD:#3e51a3; --cD-soft:#e6e9f5;
+  --f-display:"Barlow","Helvetica Neue",Arial,sans-serif; --f-body:"Open Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --r:10px;
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+  --bg:#0b1519; --surface:#122128; --ink:#e9eef0; --ink-2:#c2ccd0; --muted:#8d9ca3; --line:#24363e; --chip:#1a2c34;
+  --navy:#e9eef0; --on-navy:#05161D; --mag:#e2629f;
+  --cA:#4fbdb4; --cA-soft:#12302e; --cB:#e3a64a; --cB-soft:#33270f; --cC:#ec7b74; --cC-soft:#3a1d1b; --cD:#8c9cf0; --cD-soft:#1d2342;
+  color-scheme:dark; } }
+:root[data-theme="dark"]{
+  --bg:#0b1519; --surface:#122128; --ink:#e9eef0; --ink-2:#c2ccd0; --muted:#8d9ca3; --line:#24363e; --chip:#1a2c34;
+  --navy:#e9eef0; --on-navy:#05161D; --mag:#e2629f;
+  --cA:#4fbdb4; --cA-soft:#12302e; --cB:#e3a64a; --cB-soft:#33270f; --cC:#ec7b74; --cC-soft:#3a1d1b; --cD:#8c9cf0; --cD-soft:#1d2342;
+  color-scheme:dark; }
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.5;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:28px 48px}
+.wrap{max-width:1240px;margin:0 auto}
+h1,h2,h3{font-family:var(--f-display);margin:0;text-wrap:balance;letter-spacing:-.01em}
+.eyebrow{font-family:var(--f-display);font-weight:700;font-size:.74rem;letter-spacing:.14em;text-transform:uppercase;color:var(--mag);margin:0}
+header{display:flex;flex-wrap:wrap;gap:12px 24px;align-items:flex-end;justify-content:space-between;margin-bottom:22px}
+header h1{font-size:clamp(2rem,4.5vw,2.9rem);font-weight:800;line-height:1.05;margin-top:4px}
+header .sub{color:var(--ink-2);margin:6px 0 0;max-width:62ch}
+header .who{font-family:var(--f-display);font-weight:600;color:var(--muted);margin:4px 0 0}
+.tools{display:flex;gap:8px;flex-wrap:wrap}
+button{font:inherit;cursor:pointer}
+.btn{font-family:var(--f-display);font-weight:700;font-size:.95rem;border-radius:999px;padding:9px 18px;border:1.5px solid var(--navy);background:transparent;color:var(--navy)}
+.btn.primary{background:var(--mag);border-color:var(--mag);color:#fff}
+.btn:hover{filter:brightness(1.08)}
+:focus-visible{outline:3px solid var(--mag);outline-offset:2px}
+
+.layout{display:grid;grid-template-columns:minmax(0,1fr) 380px;gap:24px;align-items:start}
+@media (max-width:980px){.layout{grid-template-columns:minmax(0,1fr)}}
+
+.step{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:18px 20px;margin-bottom:16px}
+.shead{display:flex;align-items:center;gap:12px;margin-bottom:12px;flex-wrap:wrap}
+.num{width:30px;height:30px;border-radius:8px;background:var(--navy);color:var(--on-navy);display:grid;place-items:center;font-family:var(--f-display);font-weight:800;flex:none}
+.shead h2{font-size:1.2rem;font-weight:700}
+.shead .q{color:var(--muted);font-size:.88rem}
+.lock{margin-left:auto;border:1px solid var(--line);background:transparent;color:var(--muted);border-radius:999px;padding:4px 10px;font-size:.78rem;display:flex;gap:6px;align-items:center}
+.lock[aria-pressed="true"]{background:var(--navy);color:var(--on-navy);border-color:var(--navy)}
+.lock svg{width:12px;height:12px}
+
+/* matriu */
+.mx{overflow-x:auto}
+.mx table{border-collapse:separate;border-spacing:6px;width:100%;min-width:560px}
+.mx th{font-family:var(--f-display);font-weight:700;font-size:.92rem;text-align:left;padding:2px 4px}
+.mx th.col{font-size:.9rem}
+.mx th.col span{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:6px}
+.mx td{padding:0}
+.cell{width:100%;border:2px solid transparent;border-radius:9px;padding:9px 12px;text-align:left;color:var(--ink-2);font-size:.85rem;display:flex;gap:6px;align-items:baseline}
+.cell b{font-family:var(--f-display);font-size:1.2rem;font-weight:800}
+.cell[aria-pressed="true"]{border-color:var(--ink);box-shadow:0 2px 0 var(--ink)}
+.rowh{display:flex;align-items:center;gap:8px;white-space:nowrap}
+.rowh svg{width:18px;height:18px;flex:none}
+
+.chips{display:flex;flex-wrap:wrap;gap:7px}
+.chip{border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:8px;padding:5px 10px;font-size:.86rem;text-align:left;line-height:1.35}
+.chip.com{border-style:dashed}
+.chip:hover{border-color:var(--ink-2)}
+.chip[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink);border-style:solid}
+.chip i{font-style:italic}
+.chip.off,.card.off{opacity:.38}
+.chip.new{position:relative;padding-left:20px}
+.chip.new::before{content:"";position:absolute;left:8px;top:50%;width:7px;height:7px;margin-top:-3.5px;border-radius:50%;background:var(--mag)}
+.cell .plus{margin-left:auto;font-family:var(--f-display);font-weight:700;font-size:.8rem;color:var(--mag)}
+.srcs{margin:8px 0 0;padding-left:18px}
+.srcs li{margin:2px 0}
+.chip.off[aria-pressed="true"],.card.off[aria-pressed="true"]{opacity:.7}
+.warn{display:inline-block;font-size:.74rem;font-weight:600;color:var(--cC);border:1px solid var(--cC);border-radius:999px;padding:0 8px;margin-left:4px;white-space:nowrap}
+.lbl{font-family:var(--f-display);font-weight:700;font-size:.74rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin:14px 0 7px}
+.lbl:first-child{margin-top:0}
+.hint{font-size:.84rem;color:var(--muted);margin:8px 0 0}
+
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:8px}
+.card{border:1px solid var(--line);border-radius:10px;background:var(--surface);padding:10px 12px;text-align:left;color:var(--ink)}
+.card .t{font-family:var(--f-display);font-weight:700;font-size:1rem;display:block}
+.card .d{font-size:.8rem;color:var(--muted);display:block;margin-top:2px}
+.card[aria-pressed="true"]{border-color:var(--ink);box-shadow:inset 0 0 0 1px var(--ink)}
+.sub{margin-top:12px}
+
+.dots{display:inline-flex;gap:3px;flex-wrap:wrap;max-width:60px}
+.dots i{width:7px;height:7px;border-radius:50%;background:var(--ink-2);display:block}
+
+.scale{display:flex;flex-wrap:wrap;gap:6px;align-items:center;font-size:.84rem}
+.scale span.s{border-radius:6px;padding:3px 9px;font-weight:600;color:#fff}
+.lv0{background:#16807a}.lv1{background:#5f6368}.lv2{background:#c4463f}
+
+/* resultat */
+.result{position:sticky;top:calc(env(safe-area-inset-top,0px) + 16px);background:var(--surface);border:1px solid var(--line);border-radius:14px;overflow:hidden}
+.rhead{background:var(--navy);color:var(--on-navy);padding:16px 20px}
+.rhead h2{font-size:1.25rem;font-weight:800}
+.rhead p{margin:2px 0 0;font-size:.84rem;opacity:.8}
+.rbody{padding:16px 20px}
+.flow{display:flex;flex-direction:column;gap:0}
+.fi{display:grid;grid-template-columns:96px minmax(0,1fr);gap:10px;padding:9px 0;border-bottom:1px dashed var(--line);align-items:baseline}
+.fi:last-child{border-bottom:0}
+.fi .k{font-family:var(--f-display);font-weight:700;font-size:.74rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.fi .v{font-size:.92rem;min-width:0}
+.fi .v.empty{color:var(--muted);font-style:italic}
+.pill{display:inline-block;border-radius:999px;padding:1px 10px;font-weight:600;font-family:var(--f-display);font-size:.95rem;color:#fff}
+.draft{margin-top:14px;background:var(--chip);border-radius:10px;padding:12px 14px;font-size:.9rem;color:var(--ink-2)}
+.draft b{color:var(--ink)}
+.notes{width:100%;margin-top:12px;border:1px solid var(--line);border-radius:10px;padding:10px 12px;background:var(--surface);color:var(--ink);font:inherit;font-size:.9rem;min-height:84px;resize:vertical}
+.ractions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.ractions .btn{font-size:.85rem;padding:7px 14px}
+.copied{font-size:.82rem;color:var(--muted);align-self:center}
+.devwrap{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:12px}
+.devwrap .btn{font-size:.88rem;padding:8px 16px}
+.dev{margin-top:12px;border:1px solid var(--line);border-radius:10px;padding:12px 14px;font-size:.9rem;line-height:1.55}
+.dev p{margin:0 0 10px}
+.dev p:last-child{margin-bottom:0}
+.dev ul{margin:0 0 10px;padding-left:18px}
+.dev li{margin:2px 0}
+
+details.gloss{margin-top:8px}
+details.gloss summary{cursor:pointer;font-family:var(--f-display);font-weight:700;font-size:1.05rem;padding:6px 0}
+.glist{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:4px 24px;margin-top:8px}
+.glist p{margin:0;padding:6px 0;border-bottom:1px solid var(--line);font-size:.86rem}
+.glist b{font-family:var(--f-display);font-style:italic}
+footer{margin-top:28px;font-size:.8rem;color:var(--muted)}
+abbr{text-decoration:underline dotted;text-underline-offset:2px;cursor:help}
+@media (prefers-reduced-motion:no-preference){ .flash{animation:fl .5s ease} @keyframes fl{from{background:var(--chip)}to{background:transparent}} }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header>
+    <div>
+      <p class="eyebrow">Didàctica del Llenguatge i l'Expressió Musical II</p>
+      <h1>Matriu combinatòria</h1>
+      <p class="sub">Tria una opció a cada pas i tindràs una activitat. Pots fixar els passos que t'agradin i deixar que la resta surti a l'atzar.</p>
+      <p class="who">Laia González Fernández · ESMUC</p>
+    </div>
+    <div class="tools">
+      <button class="btn primary" id="rand">Combinació a l'atzar</button>
+      <button class="btn" id="clear">Començar de zero</button>
+    </div>
+  </header>
+
+  <div class="layout">
+    <main>
+      <section class="step" id="s12">
+        <div class="shead"><div class="num">1</div><h2>Competència × modalitat</h2><span class="q">Què fan i amb què? Tria una casella.</span>
+          <button class="lock" data-lock="cm" aria-pressed="false"></button></div>
+        <div class="mx"><table id="mx"></table></div>
+        <div id="qc"></div>
+      </section>
+
+      <section class="step">
+        <div class="shead"><div class="num">2</div><h2>Format</h2><span class="q">Com s'organitza l'activitat?</span>
+          <button class="lock" data-lock="fmt" aria-pressed="false"></button></div>
+        <div class="cards" id="fmt"></div>
+        <div class="sub" id="fmtsub"></div>
+      </section>
+
+      <section class="step">
+        <div class="shead"><div class="num">3</div><h2>Agrupament</h2><span class="q">Amb qui?</span>
+          <button class="lock" data-lock="agr" aria-pressed="false"></button></div>
+        <div class="cards" id="agr"></div>
+        <div class="sub" id="agrsub"></div>
+      </section>
+
+      <section class="step">
+        <div class="shead"><div class="num">4</div><h2>Paràmetre per variar</h2><span class="q">Què canvia d'una variant a una altra?</span>
+          <button class="lock" data-lock="par" aria-pressed="false"></button></div>
+        <div class="cards" id="par"></div>
+        <div class="sub" id="parsub"></div>
+      </section>
+
+      <section class="step">
+        <div class="shead"><div class="num">5</div><h2>Palanca de complexitat</h2><span class="q">Opcional. Com puges o baixes el repte sense canviar el contingut.</span>
+          <button class="lock" data-lock="pal" aria-pressed="false"></button></div>
+        <div class="cards" id="pal"></div>
+        <div class="sub" id="palsub"></div>
+      </section>
+
+      <section class="step">
+        <div class="shead"><div class="num">6</div><h2>Escriptura</h2><span class="q">Opcional. De la pregrafia a la transcripció, segons el nivell.</span>
+          <button class="lock" data-lock="esc" aria-pressed="false"></button></div>
+        <div class="cards" id="esc"></div>
+        <div class="sub" id="escsub"></div>
+      </section>
+
+      <details class="gloss step">
+        <summary>Glossari de termes</summary>
+        <div class="glist" id="gloss"></div>
+      </details>
+    </main>
+
+    <aside class="result" aria-live="polite">
+      <div class="rhead"><h2>La teva activitat</h2><p>X = el contingut musical que treballes</p></div>
+      <div class="rbody">
+        <div class="flow" id="flow"></div>
+        <div class="draft" id="draft"></div>
+        <div class="devwrap">
+          <button class="btn primary" id="devbtn">Desenvolupa l'activitat</button>
+          <span class="copied" id="devstate"></span>
+        </div>
+        <div class="dev" id="dev" hidden></div>
+        <label class="lbl" for="notes" style="display:block;margin-top:14px">Descriu-la amb les teves paraules</label>
+        <textarea class="notes" id="notes" placeholder="Per parelles, marquem amb el cos només quan sona…"></textarea>
+        <div class="ractions">
+          <button class="btn" id="copy">Copiar l'activitat</button>
+          <span class="copied" id="copied"></span>
+        </div>
+      </div>
+    </aside>
+  </div>
+
+  <footer><h2 style="font-size:1.05rem;font-weight:700;color:var(--ink);margin:0">Bibliografia</h2>
+  <ul class="srcs" style="list-style:none;padding-left:0">
+    <li>Houlahan, M. i Tacka, P. (2015). <i>Kodály Today</i> (2a ed.) i els volums per cursos. Oxford University Press.</li>
+    <li>Lindeman, C. A. <i>The Musical Classroom: Backgrounds, Models, and Skills for Elementary Teaching</i>. Routledge.</li>
+    <li>Lowe, M. <i>Music Moves for Piano</i>, llibre 1, i <i>Keyalities and Tonalities</i>. Music Moves LLC.</li>
+    <li>Marsh, K. i Young, S. «Musical play». A G. E. McPherson (ed.), <i>The Child as Musician</i>. Oxford University Press.</li>
+    <li>Taggart, C. C. et al. <i>Jump Right In: The Music Curriculum</i>, llibre 4. GIA.</li>
+  </ul>
+  <p style="margin:10px 0 0">© Laia González Fernández · Matriu combinatòria — Llenguatge musical · ESMUC · Llicència CC BY-SA 4.0</p></footer>
+</div>
+
+<script>
+/* ===================== DADES (de la Matriu combinatòria, versió extensa) ===================== */
+var COMP=[
+ {id:"A",n:"Interpretar",d:"Fer sonar la música",c:"--cA"},
+ {id:"B",n:"Percebre",d:"Oïda i atenció",c:"--cB"},
+ {id:"C",n:"Crear",d:"Improvisar i compondre amb restriccions",c:"--cC"},
+ {id:"D",n:"Comprendre",d:"Entendre-ho teòricament",c:"--cD"}
+];
+var MOD=[
+ {id:"veu",n:"Veu",full:"Veu / paraula",ic:'<path d="M4 10v4M8 7v10M12 9v6M16 5v14M20 10v4"/>'},
+ {id:"ins",n:"Instruments",full:"Instruments",ic:'<rect x="3" y="5" width="18" height="14" rx="1.5"/><path d="M7.5 5v8M12 5v8M16.5 5v8M3 13h18"/>'},
+ {id:"cos",n:"Cos",full:"Cos / percussió corporal",ic:'<path d="M8 13V6.5a1.5 1.5 0 013 0V12M11 11V5a1.5 1.5 0 013 0v6M14 11V6.5a1.5 1.5 0 013 0V14a6 6 0 01-6 6h-1a5 5 0 01-4.3-2.5L4.5 14a1.5 1.5 0 012.6-1.5L8 14"/>'},
+ {id:"mov",n:"Moviment",full:"Moviment / espai",ic:'<circle cx="18" cy="5" r="2"/><path d="M16 7c-3 1-3 4-6 5s-5 0-6 3 3 5 6 4"/>'},
+ {id:"tec",n:"Tecnologia",full:"Tecnologia (DAW, loopers, àudio)",ic:'<rect x="3" y="4" width="18" height="12" rx="1.5"/><path d="M8 20h8M12 16v4M6 12l3-3 3 2 5-4"/>'}
+];
+/* QUÈ | COM, separats per | */
+var CAT={
+ A:{
+  veu:["solfeig <i>movable-do</i>{M}|síl·laba neutra (cantar amb «la» o «nu»){M}|lectura melòdica a primera vista{M}|entonació d'intervals{M}|escales i motius modals{M}|articulació (legato / staccato / tenuto){D}|accents{DR}|dinàmiques contrastants (pp / p / mf / f){D}|sforzando puntual{D}|glissandi i <i>slides</i>{MT}|color de les vocals (a, e, i…){T}|registres de la veu (pit / cap / falset){TM}|cançons en cànon{M}@KT|cantar amb signes manuals (fononímia){M}@KT|la nota de repòs (tònica) de la cançó{M}@JRI",
+       "eco (el grup repeteix)|cadena (cadascú afegeix un fragment)~3|pregunta-resposta|responsorial (solista ↔ grup)~3|bordó (una nota llarga de fons){M}|<i>humming</i>{M}|cànon curt~2|imitació diferida (repetir uns temps més tard)~2|cànon a dos temps de distància~2@KT|un grup canta la cançó i l'altre un ostinato melòdic{M}~4@KT|llegir i memoritzar: s'esborren 4 temps a cada volta@KT|a un senyal, se segueix cantant per dins i, a un altre, en veu alta@KT"],
+  ins:["fonamentals dels acords (línia de baix){H}|tríades i quatríades{H}|arpegis{H}|inversions{H}|<i>voicings</i> tancats / oberts{H}|nota pedal (es manté mentre canvien els acords){H}|patrons d'acompanyament (Alberti, <i>comping</i> bàsic, <i>block chords</i>){HR}|canvi de registre{MT}|articulació (picat / lligat){D}|lectura a vista de patrons{RH}|lectura per xifrat (C, Am, G7…){H}|bordó i bordó alternat (instruments Orff){H}@LIN|arpegis de tònica i tònica-dominant-tònica en diverses tonalitats{H}@KEY|toc separat / lligat{D}@MMP",
+       "repartir rols (baix / harmonia / melodia){H}~3|rotació de rols (cada volta, un rol diferent)~2|ostinato de grup~3|tocar el que el mestre mostra amb signes manuals{M}@KT|acompanyar una cançó coneguda amb un ostinato escrit@KT|tocar en conjunt: cadascú una part de la mateixa peça~2@MMP"],
+  cos:["pols{R}|subdivisió (dividir el pols en 2, 3 o 4){R}|accents{R}|<i>backbeat</i>{R}|síncopes{R}|patrons de clave (son, rumba…){R}|amalgames (5/8, 7/8…){R}|polirítmia (dos ritmes alhora, p. ex. 3 contra 2){R}|desplaçament d'accent{R}|canvis de densitat (més o menys cops per temps){R}|marcar on canvia l'acord{HR}|macrotemps i microtemps (talons i mans){R}@JRI",
+       "ostinato corporal{R}|<i>breaks</i> i <i>fills</i>{R}|codi de gestos per als canvis{G}|graella corporal (cada part del cos, un so){R}|patrons de peus / mans{R}|jocs de picar de mans de pati~2@MCP|cantar una cançó i picar el ritme d'una altra alhora{R}@KT|cantar, picar el ritme amb una mà i un ostinato amb l'altra{R}@KT|marcar el compàs (dirigir) mentre es canta{R}@LIN"],
+  mov:["nivells (terra / mitjà / aeri) per mostrar el registre o la dinàmica{MD}|apropar-se o allunyar-se per mostrar la intensitat{D}|canvi de direcció quan passa X{G}|cada zona de l'espai, una funció o un rol{H}|simetries a l'espai per mostrar la forma (A – A'){F}|qualitats del moviment (Laban: pes, flux, temps) per mostrar dinàmica, articulació i tempo{DR}@JRI",
+       "trajectes (rectes, diagonals, cercles, espiral, ziga-zaga)|figures (obrir-tancar, paret-porta, mirall)~2|entrades esglaonades~3|congelar-se (quedar-se quiet)|passar un objecte (mocador, pilota tova)~3|canviar el tipus de pas|jocs cantats i danses en rotllana~4@LIN|seguir el líder~2@LIN"],
+  tec:["subdivisions amb <i>click</i>{R}|pols intern / extern (comptar per dins o amb <i>click</i>){R}|capes gravades{G}",
+       "<i>live looping</i>|activar / silenciar capes en directe (<i>mute / solo</i>)|disparar <i>samples</i> (<i>trigger</i>)|controlar efectes en directe amb un controlador{T}"]
+ },
+ B:{
+  veu:["igual / diferent{G}|hi ha canvi o no (de X){G}|intervals{M}|modes (dòric, frigi, lidi…){M}|tensions dels acords (9, 11, 13){H}|quina nota o acord hauria de venir ara{HM}|on acaba la frase (cadències){HF}|afinació contra una nota llarga de fons{M}|la nota de repòs i la tonalitat (major / menor){M}@JRI|grau conjunt o salt{M}@KT",
+       "endevinar la continuació|completar l'interval (cantar la segona nota){M}|cantar la tensió o la fonamental{H}|<i>inner hearing</i> (cantar per dins + confirmar)|dictat melòdic: cantar-la, memoritzar-la i escriure-la{M}@KT|reconèixer una cançó pels signes manuals del mestre{M}@KT|escoltar una cançó i ordenar quatre targetes dels seus patrons{RM}@KT|endevinar la cançó pel ritme picat{R}@KT"],
+  ins:["acord en estat fonamental o invertit{H}|tipus d'acord (major, menor, de 7a…) i tensions{H}|modes{M}|color tímbric i registre{T}|interval melòdic o harmònic{M}@KT",
+       "tast de sons (tocar només un instant){T}|tocar i aturar-se per comprovar què s'ha sentit|comparar dos timbres (A/B){T}|transcriure d'oïda: buscar la melodia a l'instrument i escriure-la{M}@NOU|sentir un interval al piano i dir si és grau conjunt o salt{M}@KT"],
+  cos:["regularitat (què es repeteix i cada quant){R}|on cau l'accent{R}|síncopes{R}|amalgames (5/8, 7/8…){R}",
+       "marcar només quan passa X|anticipar amb un gest (just abans que passi)|semàfor (un gest per a cada cas)|comptar en veu alta o per dins|ajustar-se al <i>click</i>{R}|pausa activa (aturar-se i seguir sentint el pols)|mentre s'escolta, macrotemps amb els talons i microtemps amb les mans{R}@JRI"],
+  mov:["on la música reposa o acaba{HF}|funcions harmòniques (tònica, subdominant, dominant){H}|punts de canvi{F}|quanta tensió o força hi ha{D}",
+       "fer un recorregut que segueixi X|aturar-se en el repòs{H}|canviar de zona quan canvia la funció{H}|girar-se quan hi ha un canvi|apropar-se / allunyar-se segons la tensió{HD}|seguir un musicograma amb el dit o amb el cos{F}@LIN"],
+  tec:["tocat a mà o quadrat per l'ordinador (<i>quantize</i> on / off){R}|la pròpia interpretació gravada{G}|el so vist en pantalla (forma d'ona, espectre){TD}",
+       "gravar-se i escoltar-se|<i>scrubbing</i> per trobar els punts clau|comparació A/B|marcar punts i repetir un fragment en bucle (<i>markers</i>, <i>loop points</i>)|<i>blind test</i> (endevinar quina versió sona)|seguir un musicograma projectat mentre sona l'audició{F}@LIN"]
+ },
+ C:{
+  veu:["motius curts{M}|variació d'un motiu (canviant una sola nota){M}|contorn nou amb el mateix final{M}|resposta que tanca (acaba a la tònica){MH}|improvisació modal sobre una nota llarga{M}|<i>scat</i> sobre ostinato{RM}|la vocal com a color{T}",
+       "completar un motiu{M}|dues línies vocals en alternança{M}~2|cadena: cada resposta afegeix alguna cosa|el mestre fa una pregunta que acaba a la dominant i l'alumne respon acabant a la tònica{MH}@KT|omplir els 4 temps que falten d'una cançó coneguda{RM}@KT|fer una cançó nova amb una forma donada (A B A B){MF}@KT|cadena: cadascú improvisa 4 temps començant amb els 2 últims de l'anterior~3@KT"],
+  ins:["segona veu (3es / 6es){MH}|línia de baix que va cap a un lloc{H}|seqüències (repetir un motiu més amunt o més avall){M}|<i>riffs</i>{RM}|<i>voicings</i> creatius (<i>drop-2</i>, quartes){H}|tonicitzacions (anar un moment a una altra tonalitat){H}|improvisació modal{M}|figuracions (arpegis, Alberti, <i>rolls</i>){HR}",
+       "textura pregunta-resposta entre instruments{M}~2|crear un ostinato, una introducció i una coda per a una cançó@LIN|improvisar sobre els acords d'una cançó (improvisació harmònica){H}@JRI|explorar el teclat i inventar-hi peces@MMP"],
+  cos:["ostinatos{R}|canviar l'accent de lloc{R}|<i>fills</i> d'1–2 pulsos{R}|<i>metric shifts</i> simples{R}|combinació peus / mans / dits{RT}",
+       "<i>breaks</i> (aturades) en punts acordats{R}|cànon rítmic curt{R}~2|canviar 2 temps d'un patró conegut{R}@KT|inventar variants d'un joc de picar de mans~2@MCP"],
+  mov:["forma (A–B–A / rondó curt){F}|gestos-motiu i les seves variacions{G}",
+       "coreografiar la forma{F}|duet líder-seguidor~2|improvisar amb regles (quan s'entra, quant dura, cap on es va)|construcció col·lectiva d'una figura~3|inventar un moviment per a cada secció de la forma{F}@LIN"],
+  tec:["arranjament per capes{FT}|automatització del volum o del filtre{DT}|<i>resampling</i>{T}|<i>slice to grid</i>{R}",
+       "escenes de <i>loops</i> (grups de bucles que sonen junts)|poques pistes (p. ex. només baix + veu)|edició ràpida (copiar / enganxar / variar cada 4 pulsos)|efectes MIDI (<i>arpeggiator</i>, <i>scale</i>) que limiten les notes possibles|exportar <i>stems</i> per remesclar-los"]
+ },
+ D:{
+  veu:["rols i funcions («tensió / repòs», «preparació», «tancament»){H}|ritme harmònic (cada quant canvia l'acord){H}|vocabulari específic{G}|escala de la cançó (quines notes fa servir){M}@KT",
+       "verbalitzar el que se sent|glossari col·lectiu~3|justificacions breus («perquè…»)|escriure les notes de la cançó en una escala vertical{M}@KT"],
+  ins:["xifrats i diagrames{H}|conducció de veus (com va cada nota a l'acord següent){H}|relació entre la posició a l'instrument i la funció{H}|lectura funcional (Nashville / graus romans){H}|cadències tònica-dominant-tònica en totes les tonalitats{H}@KEY",
+       "escriure amb símbols el que es toca|dibuixar la conducció de veus{H}"],
+  cos:["temps i accents{R}|densitat (quants sons hi ha per temps){R}|binari / ternari / compost / amalgama{R}|agrupaments de temps (compàs) mostrats dirigint{R}@LIN",
+       "graella corporal{R}|línia de temps amb gestos{R}|comparar maneres de comptar (en 2, en 3…){R}"],
+  mov:["forma (on entra cada part, on canvia){F}|el camí de la preparació al tancament{H}|relació entre gest i funció{H}",
+       "representar la forma a l'espai{F}|mapa a l'espai: funcions properes, a prop{H}|dibuixar un musicograma propi d'una audició{F}@LIN"],
+  tec:["quina funció fa cada capa (baix, acords, melodia){TFH}|forma{F}|contrast de timbres{T}",
+       "anotar amb <i>markers</i> i etiquetar clips|codis de color per capes / funcions|<i>piano roll</i> per veure el ritme com una graella{R}|<i>arrangement view</i> per veure la forma{F}|<i>spectral view</i> per al timbre{T}"]
+ }
+};
+var FMT=[
+ {n:"Imitació i pràctica repetitiva",comp:"AB",o:"cicles curts|<i>tempo ramp</i>|el mateix amb dinàmiques diferents{D}|articulacions|lectura de targetes (un patró a cada targeta)|<i>flash drills</i>"},
+ {n:"Jocs",comp:"ABCD",o:"eco-cursa (per equips: qui repeteix bé el patró primer, guanya)~4|<i>stop / go</i>|<i>hot potato</i>~3|<i>odd one out</i>|<i>memory</i>|vertader o fals (sona el que diu?)|<i>freeze</i> selectiu~3|endevinar la cançó pel ritme{R}@KT|jocs de picar de mans{R}~2@MCP"},
+ {n:"Tallers de capes",comp:"AC",min:3,o:"un grup fa el baix, un altre l'harmonia, un altre la melodia{HM}~3|un grup fa el pols, un altre la subdivisió, un altre els canvis{R}~3|<i>mute / solo</i>: treure i posar capes per sentir què fa cada una"},
+ {n:"Improvisació guiada",comp:"C",o:"amb límits (quantes notes, quant de temps, quin registre, quina funció)|pregunta / resposta|poc material (p. ex. només 3 notes)"},
+ {n:"Composició exprés",comp:"C",o:"peces d'1 a 4 compassos{G}|cartes que diuen què cal fer servir|ha d'acabar amb una cadència concreta{H}|textura fixada (p. ex. melodia + bordó){M}"},
+ {n:"Anàlisi activa",comp:"BD",o:"predir què vindrà i comprovar-ho{G}|trobar on acaben les frases{HF}|ritme harmònic (cada quant canvia l'acord){H}|comparar variants|comparar dues versions d'estil diferent|musicograma o <i>call chart</i>{F}@LIN"},
+ {n:"Reescriptura / transformació",comp:"CD",o:"canviar el tempo|canviar el compàs{R}|més o menys notes|canviar el registre{MT}|invertir els acords{H}|afegir ornaments{M}|passar-ho a un altre mode{M}"},
+ {n:"Lectura i dictat",comp:"ABD",mods:"veu ins cos tec",o:"lectura a primera vista{RMH}|dictat (melòdic, rítmic, harmònic){RMH}|targetes de patrons{RM}|marcar sobre la partitura el que se sent|dictat d'una audició: cantar, picar, memoritzar i escriure@KT|omplir els compassos que falten d'una cançó@KT|llegir i memoritzar mentre s'esborra@KT"},
+ {n:"Relleus / rotació de rols",comp:"AC",min:3,o:"un alumne lidera~3|dirigir amb gestos~3|qui entra i quan~3|<i>follow the conductor</i>~3"},
+ {n:"Projecte / performance breu",comp:"AC",o:"",d:"Tanca el procés amb una petita mostra o actuació."}
+];
+var AGR=[
+ {n:"Individual",k:1,s:"1",o:"autoregulació (cadascú al seu ritme)|<i>shadowing</i>|<i>inner hearing</i>"},
+ {n:"Parelles",k:2,s:"2",o:"diàleg|mirall (un imita l'altre alhora)~2|líder-seguidor|pregunta-resposta|<i>checker + doer</i>"},
+ {n:"Tríades",k:3,s:"3",o:"un fa el baix, un l'acompanyament, un la melodia|un fa el pols, un la subdivisió, un els canvis|un timbre diferent per persona"},
+ {n:"Microensembles",k:5,s:"4–6",o:"rotar els rols|un alumne dirigeix el grup|repartir-se les parts"},
+ {n:"Grup classe",k:10,s:"tots",o:"el grup respon com un cor|entrades esglaonades~3|direcció gestual"}
+];
+var ESPAI="cercle|files|U|estacions|recorreguts|zones de funció|<i>quiet corners</i>|<i>hot spots</i>";
+var PAR=[
+ {n:"Temporal / estructural",o:"tempo (lent → ràpid)|mètrica (simple / composta / mixta){R}|ritme harmònic (cada 4 / 2 / 1 pulsos){H}|longitud de frase (2 / 4 / 8 pulsos)|silenci / respiració|desplaçament de l'entrada{R}"},
+ {n:"Melòdic",o:"contorn{M}|àmbit{M}|direcció obligada al final{M}|notes guia (les que defineixen cada acord){M}|registre (greu / mitjà / agut){M}"},
+ {n:"Harmònic",o:"centre tonal{H}|funcions (T–S–D){H}|inversions{H}|7a{H}|tensions (9, 11, 13){H}|dominants secundàries{H}|cadències (autèntica / plagal / semicadència){H}|modes{MH}"},
+ {n:"Rítmic",o:"pols / subdivisió{R}|accents{R}|síncopes{R}|<i>swing / straight</i>{R}|clave{R}|amalgames (5/8, 7/8…){R}|polirítmia 2:3 / 3:2…{R}|canvis de densitat{R}"},
+ {n:"Dinàmic / articulatori",o:"dinàmiques contrastants{D}|cresc. / dim.{D}|sforzandi{D}|legato / staccato / tenuto{D}|accents fora de pols{RD}"},
+ {n:"Tímbric",o:"color{T}|tècniques (pizz. / arco, <i>muted / open</i>, aire / veu plena){T}|combinació de timbres{T}|pedals{T}"},
+ {n:"Textura",o:"monodia|bordó|ostinato|homofonia|heterofonia|pregunta-resposta|tutti / solo"},
+ {n:"Espai",mods:"cos mov",o:"disposició (cercle, files, U, estacions)|distàncies|moviment obligat / lliure|trajectes|nivells"},
+ {n:"Cognitiu",o:"memòria immediata / diferida|fer dues coses alhora (moure's i cantar)|escoltar només una cosa|canviar les regles a mig joc"}
+];
+var PAL=[
+ {n:"Temps",t:"G",sc:[["1 pols",0],["4 pulsos",2]],o:"1 frase → 2 frases|silenci obligat|entrada retardada"},
+ {n:"Capes",t:"RMH",sc:[["1 veu",0],["2 veus",1],["3 veus",2]],o:""},
+ {n:"Mètrica",t:"R",sc:[["simple",0],["composta",1],["mixta",2]],o:"desplaçament d'accent{R}|swing{R}"},
+ {n:"Ritme harmònic",t:"H",sc:[["lent",0],["ràpid",2]],o:"regular → irregular{H}|anticipat / retardat{H}"},
+ {n:"Guia",t:"G",sc:[["amb bordó / metrònom / referència visual",0],["sense",2]],o:""},
+ {n:"Material",t:"G",sc:[["conegut",0],["nou",2]],o:""},
+ {n:"Suport",t:"RMH",mods:"veu ins cos",sc:[["amb partitura",0],["de memòria",2]],o:""}
+];
+var ESC=[
+ {n:"1 · Pregrafia",o:"pictogrames|codis de color (per a funcions, compàs, dinàmiques…)|fletxes tensió → repòs{H}|<i>timelines</i> simples{RF}|adhesius / targetes magnètiques"},
+ {n:"2 · Notació funcional",o:"T–S–D{H}|xifrat romà (I–IV–V–I…){H}|xifrat americà (C–F–G–C){H}|<i>Nashville numbers</i> (1–4–5–1){H}"},
+ {n:"3 · Ritme harmònic",o:"barra de temps amb els canvis marcats (cada 4 / 2 / 1 pulsos){H}|indicació de cadència{H}|correspondència amb la frase{H}"},
+ {n:"4 · Conducció de veus bàsica",o:"baix + xifres (5/3, 6, 6/5, 7){H}|fletxes de resolució (sensible → tònica){H}|7a → baixa per grau conjunt{H}|esquemes de 3es / 6es{H}"},
+ {n:"5 · Diagrames / mapes",o:"forma (A–B–A, rondó){F}|mapa de proximitat funcional{H}|gràfic de tensió / repòs{HD}|<i>piano roll</i>{RM}|<i>lead sheet</i> mínim{MH}"},
+ {n:"6 · Lead sheet complet",o:"melodia + acords (o xifrat funcional){MH}|indicació de forma i <i>road map</i> (D.S., Coda){F}"},
+ {n:"7 · Transcripció completa",o:"melodia, baix, acords / inversions{MH}|anotació del ritme harmònic i les cadències{H}|dinàmica i articulació (si escau){D}|comentari analític breu"},
+ {n:"Transversal · Digital",o:"<i>arrangement view</i>{F}|<i>piano roll</i>{RM}|exportació en PDF / àudio amb marcatges|codis QR que enllacen a clips"}
+];
+var GLOSS=[
+ ["Backbeat","accent als temps febles (2 i 4 en un 4/4)."],["Blind test","escolta a cegues: no se sap quina versió sona."],["Block chords","acords placats, totes les notes alhora."],["Breaks / fills","aturada breu / farciment rítmic que connecta dues frases."],["Call chart","guia d'audició amb números o imatges que marquen cada esdeveniment de la música."],["Checker + doer","un fa la tasca i l'altre la comprova."],["Comping","acompanyament harmònic-rítmic (terme del jazz)."],["Drop-2","voicing on la 2a veu des de dalt baixa una octava."],["Flash drills","exercicis molt breus i ràpids, amb targetes."],["Hot potato","passar-se un element: qui el té quan s'atura, respon."],["Humming","cantar amb la boca tancada."],["Inner hearing","oïda interna: imaginar el so sense produir-lo."],["Lead sheet","partitura amb melodia i xifrat d'acords."],["Live looping","gravar i superposar bucles en directe."],["Metric shift","canvi o desplaçament de la percepció mètrica."],["Movable-do","solfeig relatiu: el do és sempre la tònica."],["Nashville numbers","acords escrits amb xifres segons el grau (1, 4, 5…)."],["Odd one out","trobar l'element diferent."],["Piano roll","graella temps × altura d'una DAW."],["Quantize","ajust automàtic de les notes a la graella rítmica."],["Resampling","tornar a gravar un so ja processat per reutilitzar-lo."],["Scat","improvisació vocal amb síl·labes sense significat."],["Scrubbing","desplaçar-se manualment per l'àudio escoltant-lo."],["Shadowing","fer alhora, com una ombra, el que fa un model."],["Slice to grid","tallar un àudio en fragments segons la graella."],["Stems","pistes separades (baix, veu…) d'una mescla."],["Swing / straight","corxeres desiguals (tresillades) / iguals."],["Tempo ramp","anar pujant el tempo progressivament."],["Voicing","disposició concreta de les notes d'un acord."]
+];
+var GMAP={}; GLOSS.forEach(function(g){ g[0].split(" / ").forEach(function(k){ GMAP[k.toLowerCase()]=g[0]+": "+g[1]; }); GMAP[g[0].toLowerCase()]=g[0]+": "+g[1]; });
+GMAP["fills"]=GMAP["breaks / fills"]; GMAP["breaks"]=GMAP["breaks / fills"]; GMAP["voicings"]=GMAP["voicing"]; GMAP["swing"]=GMAP["swing / straight"];
+
+/* ===================== ESTAT ===================== */
+var S={}, LOCK={};
+var LOCKS=["cm","fmt","agr","par","pal","esc"];
+function split(s){ return s? s.split("|").map(function(x){ return x.replace(/(\{[A-Z]+\})?(~\d+)?(@[A-Z]+)?$/,""); }):[]; }
+function sizesOf(s){ return s? s.split("|").map(function(x){ var m=x.match(/~(\d+)(@[A-Z]+)?$/); return m?+m[1]:1; }):[]; }
+function tagsOf(s){ return s? s.split("|").map(function(x){ var m=x.match(/\{([A-Z]+)\}(~\d+)?(@[A-Z]+)?$/); return m?m[1]:"G"; }):[]; }
+function srcsOf(s){ return s? s.split("|").map(function(x){ var m=x.match(/@([A-Z]+)$/); return m?m[1]:null; }):[]; }
+var SRC={KT:"Houlahan i Tacka, Kodály Today (2015) i els volums per cursos",JRI:"Taggart et al., Jump Right In, llibre 4",LIN:"Lindeman, The Musical Classroom",MMP:"Lowe, Music Moves for Piano, llibre 1",KEY:"Lowe, Keyalities and Tonalities",MCP:"Marsh i Young, «Musical play», a McPherson (ed.), The Child as Musician",NOU:"proposta afegida (no surt als llibres ni al PDF)"};
+var DOM={R:"ritme",M:"melodia",H:"harmonia",D:"dinàmica i articulació",T:"timbre",F:"forma"};
+/* àmbit de la X triada; null = encara no n'hi ha */
+function xTags(){ return (S.comp&&S.que!=null)? tagsOf(CAT[S.comp][S.mod][0])[S.que] : null; }
+function fits(t){ var x=xTags(); if(!x||!t||t.indexOf("G")>-1) return true; if(x==="G") return false; /* X general: només opcions generals */ for(var i=0;i<t.length;i++) if(x.indexOf(t[i])>-1) return true; return false; }
+function xName(){ var x=xTags(); if(!x||x==="G") return null; return x.split("").map(function(c){return DOM[c];}).join(" / "); }
+/* mida mínima del grup que demanen la tasca i el format triats */
+function minGroup(){ var m=1;
+  if(S.comp&&S.com!=null) m=Math.max(m,sizesOf(CAT[S.comp][S.mod][1])[S.com]);
+  if(S.fmt!=null){ m=Math.max(m,FMT[S.fmt].min||1); if(S.fmtO!=null) m=Math.max(m,sizesOf(FMT[S.fmt].o)[S.fmtO]); }
+  return m; }
+function cardFits(o){ if(o.k) return o.k>=minGroup(); if(o.mods&&S.mod&&o.mods.indexOf(S.mod)<0) return false; if(o.comp&&S.comp&&o.comp.indexOf(S.comp)<0) return false; if(o.t) return fits(o.t); var t=tagsOf(o.o); if(!t.length) return true; return t.some(fits); }
+function plain(h){ var d=document.createElement("div"); d.innerHTML=h; return d.textContent; }
+function withGloss(h){
+  return h.replace(/<i>([^<]+)<\/i>/g,function(m,t){ var g=GMAP[t.toLowerCase()]; return g? '<i><abbr title="'+g.replace(/"/g,"&quot;")+'">'+t+'</abbr></i>':m; });
+}
+function cc(id){ return "var("+COMP.filter(function(c){return c.id===id;})[0].c+")"; }
+
+var EXAMPLE={comp:"B",mod:"cos",que:2,com:0,fmt:1,fmtO:1,agr:1,agrO:null,par:3,parO:2,pal:0,esc:0,escO:3};
+
+/* ===================== PINTAR ===================== */
+function el(id){ return document.getElementById(id); }
+function drawMatrix(){
+  var h='<tr><th></th>'; COMP.forEach(function(c){ h+='<th class="col" style="color:var('+c.c+')"><span style="background:var('+c.c+')"></span>'+c.id+'. '+c.n+'</th>'; }); h+='</tr>';
+  MOD.forEach(function(m){
+    h+='<tr><th><span class="rowh"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+m.ic+'</svg>'+m.n+'</span></th>';
+    COMP.forEach(function(c){
+      var all=srcsOf(CAT[c.id][m.id][0]).concat(srcsOf(CAT[c.id][m.id][1]));
+      var nNew=0, n=all.length;
+      var on=S.comp===c.id&&S.mod===m.id;
+      h+='<td><button class="cell" data-c="'+c.id+'" data-m="'+m.id+'" aria-pressed="'+on+'" style="background:var('+c.c+'-soft)" aria-label="'+c.n+' amb '+m.n+': '+n+' idees del PDF i '+nNew+' de noves"><b style="color:var('+c.c+')">'+n+'</b> idees</button></td>';
+    });
+    h+='</tr>';
+  });
+  el("mx").innerHTML=h;
+  Array.prototype.forEach.call(el("mx").querySelectorAll(".cell"),function(b){
+    b.onclick=function(){ S.comp=b.dataset.c; S.mod=b.dataset.m; S.que=null; S.com=null; render(); };
+  });
+  var qc=el("qc");
+  if(!S.comp){ qc.innerHTML='<p class="hint">Cada casella separa <b>què</b> es treballa (el contingut, la X) de <b>com</b> es treballa (la tasca).</p>'; return; }
+  var cat=CAT[S.comp][S.mod], comp=COMP.filter(function(c){return c.id===S.comp;})[0], mod=MOD.filter(function(m){return m.id===S.mod;})[0];
+  var x='<p class="lbl" style="margin-top:16px;color:var('+comp.c+')">'+comp.n+' · '+mod.full+'</p>';
+  x+='<p class="lbl">Què · el contingut (X)</p><div class="chips">'+chipList(split(cat[0]),"que","",null,null)+'</div>';
+  if(xName()) x+='<p class="hint">Aquesta X és de <b>'+xName()+'</b>. Als passos següents, les opcions que no hi encaixen (pel contingut, la competència o la mida del grup) surten més clares.</p>';
+  x+='<p class="lbl">Com · la tasca</p><div class="chips">'+chipList(split(cat[1]),"com","com",tagsOf(cat[1]),null)+'</div>';
+  qc.innerHTML=x; bindChips(qc);
+}
+function chipList(arr,key,cls,tags,srcs){
+  return arr.map(function(t,i){ var off=tags&&!fits(tags[i]), src=srcs&&srcs[i];
+    var tip=[]; if(src) tip.push("Nova · "+SRC[src]); if(off) tip.push("No encaixa amb la resta de l'activitat");
+    return '<button class="chip '+cls+(off?' off':'')+(src?' new':'')+'" data-k="'+key+'" data-i="'+i+'" aria-pressed="'+(S[key]===i)+'"'+(tip.length?' title="'+tip.join(" · ").replace(/"/g,"&quot;")+'"':'')+'>'+withGloss(t)+'</button>'; }).join("");
+}
+function bindChips(root){
+  Array.prototype.forEach.call(root.querySelectorAll(".chip"),function(b){
+    b.onclick=function(){ var k=b.dataset.k, i=+b.dataset.i; S[k]=(S[k]===i)?null:i; render(); };
+  });
+}
+function drawCards(id,arr,key,desc,extra){
+  el(id).innerHTML=arr.map(function(o,i){
+    var off=!cardFits(o);
+    return '<button class="card'+(off?' off':'')+'" data-k="'+key+'" data-i="'+i+'" aria-pressed="'+(S[key]===i)+'"'+(off?' title="No encaixa amb la resta de l\'activitat"':'')+'><span class="t">'+o.n+'</span>'+(desc?'<span class="d">'+desc(o)+'</span>':'')+'</button>';
+  }).join("");
+  Array.prototype.forEach.call(el(id).querySelectorAll(".card"),function(b){
+    b.onclick=function(){ var i=+b.dataset.i; if(S[key]===i){ S[key]=null; } else { S[key]=i; } S[key+"O"]=null; render(); };
+  });
+  var sub=el(id+"sub"), o=S[key]!=null?arr[S[key]]:null;
+  if(!o){ sub.innerHTML=""; return; }
+  var h=extra?extra(o):"";
+  var opts=split(o.o);
+  if(opts.length) h+='<p class="lbl">'+(key==="pal"?"Altres maneres d'afegir repte":"Tria una opció (o deixa-ho obert)")+'</p><div class="chips">'+chipList(opts,key+"O","",tagsOf(o.o),null)+'</div>';
+  if(o.d) h+='<p class="hint">'+o.d+'</p>';
+  sub.innerHTML=h; bindChips(sub);
+}
+function scaleHTML(o){
+  return '<p class="lbl">Escala, de més fàcil a més difícil</p><div class="scale">'+o.sc.map(function(s){ return '<span class="s lv'+s[1]+'">'+s[0]+'</span>'; }).join(' <span aria-hidden="true">→</span> ')+'</div>';
+}
+
+/* resultat */
+function val(key,arr){ return S[key]!=null?arr[S[key]]:null; }
+function opt(key,o){ return (o&&S[key+"O"]!=null)? split(o.o)[S[key+"O"]] : null; }
+function summary(){
+  var r={};
+  if(S.comp){
+    r.comp=COMP.filter(function(c){return c.id===S.comp;})[0]; r.mod=MOD.filter(function(m){return m.id===S.mod;})[0];
+    var cat=CAT[S.comp][S.mod]; r.que=S.que!=null?split(cat[0])[S.que]:null; r.com=S.com!=null?split(cat[1])[S.com]:null;
+  }
+  r.fmt=val("fmt",FMT); r.fmtO=opt("fmt",r.fmt);
+  r.agr=val("agr",AGR); r.agrO=opt("agr",r.agr);
+  r.par=val("par",PAR); r.parO=opt("par",r.par);
+  r.pal=val("pal",PAL); r.palO=opt("pal",r.pal);
+  r.esc=val("esc",ESC); r.escO=opt("esc",r.esc);
+  return r;
+}
+function drawResult(){
+  var r=summary(), E='<span class="v empty">sense triar</span>';
+  function row(k,v,ok){ return '<div class="fi"><span class="k">'+k+'</span>'+(v?'<span class="v">'+v+(ok===false?' <span class="warn">no encaixa</span>':'')+'</span>':E)+'</div>'; }
+  function okOpt(key,arr){ if(S[key]==null) return true; var o=arr[S[key]]; if(S[key+"O"]!=null) return fits(tagsOf(o.o)[S[key+"O"]]); return cardFits(o); }
+  var h="";
+  h+=row("Competència", r.comp?'<span class="pill" style="background:var('+r.comp.c+')">'+r.comp.n+'</span> × '+r.mod.n:null);
+  h+=row("X (què)", r.que?withGloss(r.que):null);
+  h+=row("Tasca", r.com?withGloss(r.com):null, S.com!=null? fits(tagsOf(CAT[S.comp][S.mod][1])[S.com]) : true);
+  h+=row("Format", r.fmt? r.fmt.n+(r.fmtO?': '+withGloss(r.fmtO):''):null, okOpt("fmt",FMT));
+  h+=row("Agrupament", r.agr? r.agr.n+(r.agrO?': '+withGloss(r.agrO):''):null, r.agr? r.agr.k>=minGroup() : true);
+  h+=row("Varia", r.par? r.par.n+(r.parO?': '+withGloss(r.parO):''):null, okOpt("par",PAR));
+  h+=row("Repte", r.pal? r.pal.n+' ('+r.pal.sc.map(function(s){return s[0];}).join(' → ')+')'+(r.palO?' · '+r.palO:''):null, okOpt("pal",PAL));
+  h+=row("Escriptura", r.esc? r.esc.n.replace(/^\d · /,"")+(r.escO?': '+withGloss(r.escO):''):null, okOpt("esc",ESC));
+  el("flow").innerHTML=h;
+  el("draft").innerHTML=draftHTML(r);
+}
+function lc(s){ return s.charAt(0).toLowerCase()+s.slice(1); }
+var PALT={"Temps":"comencem amb fragments d'1 pols i els allarguem fins a 4 pulsos","Capes":"comencem amb 1 veu i n'afegim fins a 3","Mètrica":"comencem en compàs simple i passem a compost i a mixt","Ritme harmònic":"comencem amb canvis d'acord lents i els fem més ràpids","Guia":"comencem amb una ajuda (bordó, metrònom o referència visual) i després la traiem","Material":"comencem amb material conegut i passem a material nou","Suport":"comencem amb partitura i acabem de memòria"};
+function draftHTML(r){
+  if(!r.comp) return "Tria una casella de la matriu per començar. La frase de l'activitat es va escrivint aquí.";
+  var verb={A:"fem sonar",B:"escoltem i reconeixem",C:"inventem",D:"entenem i expliquem"}[r.comp.id];
+  if(r.comp.id==="A"&&r.mod.id==="mov") verb="interpretem";
+  if(r.comp.id==="B"&&r.mod.id==="mov") verb="mostrem que reconeixem";
+  var how={veu:"amb la veu",ins:"amb instruments",cos:"amb el cos",mov:"amb el moviment",tec:"amb tecnologia"}[r.mod.id];
+  var p=[];
+  var who=r.agr? {0:"Individualment",1:"Per parelles",2:"En tríades",3:"En petits grups",4:"Tot el grup"}[S.agr]+", ":"";
+  var x=r.que? "<b>"+r.que+"</b>" : "<b>X</b> <span style=\"color:var(--muted)\">(tria què treballeu)</span>";
+  var s=who+(who?verb:verb.charAt(0).toUpperCase()+verb.slice(1))+" "+x+" "+how;
+  if(r.com) s+=", fent <b>"+r.com+"</b>";
+  p.push(s+".");
+  if(r.fmt) p.push("Format: <b>"+lc(r.fmt.n)+"</b>"+(r.fmtO?" ("+r.fmtO+")":"")+".");
+  if(r.par) p.push("A cada variant canviem "+(r.parO?"<b>"+r.parO+"</b> (paràmetre "+lc(r.par.n.split(" / ")[0])+")":"un paràmetre "+lc(r.par.n.split(" / ")[0]))+".");
+  if(r.pal) p.push("Per pujar el repte, "+PALT[r.pal.n]+(r.palO?" (o: "+r.palO+")":"")+".");
+  if(r.esc) p.push("Per deixar-ne rastre, ho anotem"+(r.escO?" amb <b>"+r.escO+"</b>":" ("+lc(r.esc.n.replace(/^\d · /,""))+")")+".");
+  return p.join(" ");
+}
+var DEVTXT="", DEVSIG="";
+function sigNow(){ return JSON.stringify([S.comp,S.mod,S.que,S.com,S.fmt,S.fmtO,S.agr,S.agrO,S.par,S.parO,S.pal,S.palO,S.esc,S.escO]); }
+function render(){
+  if(DEVSIG&&DEVSIG!==sigNow()){ DEVTXT=""; DEVSIG=""; el("dev").hidden=true; el("dev").innerHTML=""; el("devstate").textContent=""; }
+  drawMatrix();
+  drawCards("fmt",FMT,"fmt",function(o){ return o.d? o.d : split(o.o).length+" tasques"; });
+  drawCards("agr",AGR,"agr",function(o){ var d='<span class="dots">'; for(var i=0;i<o.k;i++) d+='<i></i>'; return d+'</span> '+o.s; },
+    function(){ return ""; });
+  if(S.agr!=null) el("agrsub").innerHTML+='<p class="lbl">Disposició de l\'espai</p><div class="chips">'+split(ESPAI).map(function(t){return '<span class="chip" style="cursor:default">'+withGloss(t)+'</span>';}).join("")+'</div>';
+  drawCards("par",PAR,"par",function(o){ return split(o.o).length+" opcions"; });
+  drawCards("pal",PAL,"pal",function(o){ return o.sc.map(function(s){return s[0];}).join(" → "); },scaleHTML);
+  drawCards("esc",ESC,"esc",null);
+  Array.prototype.forEach.call(document.querySelectorAll(".lock"),function(b){
+    var on=!!LOCK[b.dataset.lock]; b.setAttribute("aria-pressed",String(on));
+    b.innerHTML=(on?'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 018 0v4"/></svg>Fixat':'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 017.5-2"/></svg>Fixar');
+    b.title=on?"No canviarà amb l'atzar":"Fixa aquest pas perquè l'atzar no el canviï";
+  });
+  drawResult();
+}
+
+/* ===================== ATZAR ===================== */
+function rnd(n){ return Math.floor(Math.random()*n); }
+function randomize(){
+  if(!LOCK.cm){
+    S.comp=COMP[rnd(4)].id; S.mod=MOD[rnd(5)].id;
+    var cat=CAT[S.comp][S.mod]; S.que=rnd(split(cat[0]).length);
+    var okC=[]; tagsOf(cat[1]).forEach(function(t,i){ if(fits(t)) okC.push(i); }); S.com=okC.length?okC[rnd(okC.length)]:null;
+  }
+  if(!LOCK.agr){ S.agr=null; S.agrO=null; }
+  [["fmt",FMT],["agr",AGR],["par",PAR],["pal",PAL],["esc",ESC]].forEach(function(p){
+    var k=p[0], arr=p[1]; if(LOCK[k]) return;
+    var ok=[]; arr.forEach(function(o,i){ if(cardFits(o)) ok.push(i); });
+    S[k]=ok[rnd(ok.length)];
+    var t=tagsOf(arr[S[k]].o), okO=[]; t.forEach(function(x,i){ if(fits(x)) okO.push(i); });
+    S[k+"O"]=okO.length?okO[rnd(okO.length)]:null;
+  });
+  render();
+  el("flow").classList.remove("flash"); void el("flow").offsetWidth; el("flow").classList.add("flash");
+}
+el("rand").onclick=randomize;
+el("clear").onclick=function(){
+  var keep={}; if(LOCK.cm){ ["comp","mod","que","com"].forEach(function(k){keep[k]=S[k];}); }
+  ["fmt","agr","par","pal","esc"].forEach(function(k){ if(LOCK[k]){ keep[k]=S[k]; keep[k+"O"]=S[k+"O"]; } });
+  S=keep; el("notes").value=""; render();
+};
+Array.prototype.forEach.call(document.querySelectorAll(".lock"),function(b){
+  b.onclick=function(){ LOCK[b.dataset.lock]=!LOCK[b.dataset.lock]; render(); };
+});
+
+/* ===================== COPIAR ===================== */
+el("copy").onclick=function(){
+  var r=summary(); var L=[];
+  if(r.comp) L.push("Competència: "+r.comp.n+" × "+r.mod.full);
+  if(r.que) L.push("X (què): "+plain(r.que));
+  if(r.com) L.push("Tasca: "+plain(r.com));
+  if(r.fmt) L.push("Format: "+r.fmt.n+(r.fmtO?" – "+plain(r.fmtO):""));
+  if(r.agr) L.push("Agrupament: "+r.agr.n+(r.agrO?" – "+plain(r.agrO):""));
+  if(r.par) L.push("Paràmetre que varia: "+r.par.n+(r.parO?" – "+plain(r.parO):""));
+  if(r.pal) L.push("Palanca: "+r.pal.n+" ("+r.pal.sc.map(function(s){return s[0];}).join(" → ")+")"+(r.palO?" · "+r.palO:""));
+  if(r.esc) L.push("Escriptura: "+r.esc.n+(r.escO?" – "+plain(r.escO):""));
+  L.push(""); L.push(plain(draftHTML(r)));
+  if(DEVTXT){ L.push(""); L.push(DEVTXT.replace(/\*\*/g,"").replace(/\*/g,"")); }
+  var n=el("notes").value.trim(); if(n){ L.push(""); L.push(n); }
+  var txt=L.join("\n");
+  function done(m){ el("copied").textContent=m; setTimeout(function(){ el("copied").textContent=""; },2500); }
+  try{
+    navigator.clipboard.writeText(txt).then(function(){ done("Copiada"); },function(){ fallback(); });
+  }catch(e){ fallback(); }
+  function fallback(){ var n=el("notes"); var old=n.value; n.value=txt; n.select(); done("Selecciona i copia el text"); setTimeout(function(){ n.value=old; },6000); }
+};
+
+
+/* ===================== DESENVOLUPAR L'ACTIVITAT ===================== */
+function esc(t){ return String(t).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#39;"); }
+function mdToHTML(md){
+  var out=[], list=false;
+  md.split(/\n/).forEach(function(line){
+    var t=line.trim();
+    var h=esc(t).replace(/\*\*([^*]+)\*\*/g,"<b>$1</b>").replace(/\*([^*]+)\*/g,"<i>$1</i>");
+    if(/^[-•] /.test(t)){ if(!list){ out.push("<ul>"); list=true; } out.push("<li>"+h.replace(/^[-•] /,"")+"</li>"); return; }
+    if(list){ out.push("</ul>"); list=false; }
+    if(t) out.push("<p>"+h.replace(/^#+\s*/,"")+"</p>");
+  });
+  if(list) out.push("</ul>");
+  return out.join("");
+}
+function comboText(){
+  var r=summary(), L=[];
+  if(r.comp) L.push("Competència: "+r.comp.n+" ("+r.comp.d+") × modalitat: "+r.mod.full);
+  if(r.que) L.push("Contingut (X): "+plain(r.que));
+  if(r.com) L.push("Tasca: "+plain(r.com));
+  if(r.fmt) L.push("Format: "+r.fmt.n+(r.fmtO?" – "+plain(r.fmtO):""));
+  if(r.agr) L.push("Agrupament: "+r.agr.n+(r.agrO?" – "+plain(r.agrO):""));
+  if(r.par) L.push("Paràmetre que varia entre variants: "+r.par.n+(r.parO?" – "+plain(r.parO):""));
+  if(r.pal) L.push("Palanca per pujar el repte: "+r.pal.n+" ("+r.pal.sc.map(function(s){return s[0];}).join(" → ")+")"+(r.palO?"; alternativa: "+plain(r.palO):""));
+  if(r.esc) L.push("Escriptura per deixar-ne rastre: "+r.esc.n.replace(/^\d · /,"")+(r.escO?" – "+plain(r.escO):""));
+  return L.join("\n");
+}
+var EXEMPLE_DEV="**1. Patró conegut (tot el grup, 3 min).** En binari, 4 macrotemps: piquem tots els microtemps a les cuixes (du de du de du de du de) amb una palmada a l'accent, al primer du. Ho repetim fins que surti sol.\n\n**2. Inventar (per grups, 5 min).** Cada grup canvia 2 temps del patró per moure l'accent a un altre lloc. Consigna: l'accent ha de caure fora de pols, en un de. Ho assagen fins que els surt a tots igual.\n\n**3. Relleus: qui entra i quan (7 min).** En rotllana, tota la classe manté el patró base com a ostinato. Un alumne fa de director: assenyala un grup, que hi posa la seva versió a sobre. Després un altre, o dos alhora. El director canvia a cada volta.\n\n**4. Variants.** Cada ronda, una consigna nova sobre on cau l'accent: al de del 4t macrotemps; dos accents fora de pols seguits; un a dins del pols i un a fora.\n\n**5. Pujar el repte.** Compàs compost: el mateix en ternari (du da di du da di), amb l'accent en un da o un di. Compàs mixt: un 5/8 (du be du ba bi).\n\n**6. Deixar-ne rastre.** Cada grup marca en una graella de 8 caselles on ha posat els accents i escriu una línia sobre què ha costat més.";
+function devPrompt(){
+  return "Ets una docent de didàctica del llenguatge musical. A partir d'aquesta combinació d'una matriu de disseny d'activitats, desenvolupa una activitat de classe concreta i realista.\n\n"+
+  "COMBINACIÓ\n"+comboText()+"\n\n"+
+  "INSTRUCCIONS\n"+
+  "- Escriu en català, en un to planer i directe.\n"+
+  "- Estructura: 5 o 6 passos numerats. Cada pas comença amb un títol curt en negreta (amb **), indica qui ho fa i quants minuts si escau, i explica exactament què fan l'alumnat i el docent. Durada total orientativa: uns 20 minuts.\n"+
+  "- Integra tots els elements de la combinació en el pas que els toca (la X, la tasca, el format, l'agrupament, les variants, el repte i el rastre). Si algun element encaixa malament, adapta'l perquè tingui sentit i, al final, afegeix una sola línia que comenci per «Nota:» explicant què has adaptat.\n"+
+  "- Si fas servir síl·labes rítmiques, usa només el sistema de Gordon: binari du de (microtemps du ta de ta), ternari du da di, compassos irregulars du be / du ba bi. No facis servir mai ta, ti, titi ni síl·labes de Kodály. Si fas servir síl·labes tonals, usa do mòbil.\n"+
+  "- Proposa material musical genèric (un patró, una cançó coneguda pel grup) sense inventar títols de cançons concretes.\n"+
+  "- No afegeixis introducció, títol general ni conclusió: només els passos (i la nota, si cal).\n"+
+  "- Format: text pla amb **negretes** per als títols dels passos; pots fer servir llistes amb «- ».\n\n"+
+  "EXEMPLE DE L'EXTENSIÓ I L'ESTIL QUE VULL (d'una altra combinació, no el copiïs):\n"+EXEMPLE_DEV;
+}
+/* versió sense Claude: desplega la combinació en passos amb una plantilla */
+function devTemplate(){
+  var r=summary(), P=[];
+  var who=r.agr? {0:"individualment",1:"per parelles",2:"en tríades",3:"en petits grups",4:"tot el grup"}[S.agr]:"en el grup";
+  P.push("**1. Presentar el material (tot el grup).** El docent presenta "+(r.que?plain(r.que):"el contingut")+" amb un exemple musical conegut i el grup el practica fins que surt sol.");
+  if(r.com) P.push("**2. La tasca ("+who+").** "+plain(r.com).charAt(0).toUpperCase()+plain(r.com).slice(1)+(r.agrO?" (agrupament: "+plain(r.agrO)+")":"")+".");
+  if(r.fmt) P.push("**3. Organització: "+lc(r.fmt.n)+".** "+(r.fmtO?"Ho fem com a "+plain(r.fmtO)+".":(r.fmt.d||"")));
+  if(r.par) P.push("**4. Variants.** A cada ronda canviem "+(r.parO?plain(r.parO):"un paràmetre "+lc(r.par.n))+", i el grup ha de dir què ha canviat.");
+  if(r.pal) P.push("**5. Pujar el repte.** "+PALT[r.pal.n].charAt(0).toUpperCase()+PALT[r.pal.n].slice(1)+(r.palO?". També: "+plain(r.palO):"")+".");
+  if(r.esc) P.push("**6. Deixar-ne rastre.** Ho anotem amb "+(r.escO?plain(r.escO):lc(r.esc.n.replace(/^\d · /,"")))+".");
+  return P.join("\n\n");
+}
+var SAMPLE=null, devCtl=null;
+(async function(){ try{ if(window.claude&&window.claude.use) SAMPLE=await window.claude.use("sample"); }catch(e){ SAMPLE=null; } })();
+el("devbtn").onclick=async function(){
+  if(!S.comp){ el("devstate").textContent="Tria primer una casella de la matriu."; return; }
+  var box=el("dev"); box.hidden=false; DEVSIG=sigNow();
+  if(!SAMPLE){ DEVTXT=devTemplate(); box.innerHTML=mdToHTML(DEVTXT); el("devstate").textContent="Versió esquemàtica"; return; }
+  if(devCtl) devCtl.abort();
+  devCtl=new AbortController(); var btn=this; btn.disabled=true; el("devstate").textContent="Desenvolupant…"; box.innerHTML="";
+  try{
+    var res=await SAMPLE(devPrompt(),{signal:devCtl.signal,cache:false,onText:function(u){ box.innerHTML=mdToHTML(u.text); }});
+    DEVTXT=res.text; box.innerHTML=mdToHTML(DEVTXT); el("devstate").textContent="";
+  }catch(e){
+    if(e&&e.text){ DEVTXT=e.text; box.innerHTML=mdToHTML(e.text); }
+    else { DEVTXT=devTemplate(); box.innerHTML=mdToHTML(DEVTXT); }
+    el("devstate").textContent=(e&&e.code==="rate_limited")?"Massa peticions: torna-ho a provar d'aquí a una estona.":"No s'ha pogut desenvolupar amb Claude; tens la versió esquemàtica.";
+  }finally{ btn.disabled=false; }
+};
+
+el("gloss").innerHTML=GLOSS.map(function(g){ return '<p><b>'+g[0]+'</b> '+g[1]+'</p>'; }).join("");
+
+/* comença amb l'exemple del document */
+S=JSON.parse(JSON.stringify(EXAMPLE));
+render();
+el("notes").placeholder="Exemple: per parelles, marquem amb el cos només quan sona una síncopa i ens aturem quan no n'hi ha.";
+</script>
+
+</body>
+</html>
