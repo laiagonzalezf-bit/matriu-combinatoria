@@ -316,7 +316,7 @@ var FMT=[
 var AGR=[
  {n:"Individual",k:1,s:"1",o:"autoregulació (cadascú al seu ritme)|<i>shadowing</i>|<i>inner hearing</i>"},
  {n:"Parelles",k:2,s:"2",o:"diàleg|mirall (un imita l'altre alhora)~2|líder-seguidor|pregunta-resposta|<i>checker + doer</i>"},
- {n:"Tríades",k:3,s:"3",o:"un fa el baix, un l'acompanyament, un la melodia|un fa el pols, un la subdivisió, un els canvis|un timbre diferent per persona"},
+ {n:"Tríades",k:3,s:"3",o:"un fa el baix, un l'acompanyament, un la melodia{HM}|un fa el pols, un la subdivisió, un els canvis{R}|un timbre diferent per persona{T}"},
  {n:"Microensembles",k:5,s:"4–6",o:"rotar els rols|un alumne dirigeix el grup|repartir-se les parts"},
  {n:"Grup classe",k:10,s:"tots",o:"el grup respon com un cor|entrades esglaonades~3|direcció gestual"}
 ];
@@ -605,16 +605,88 @@ function devPrompt(){
   "- Format: text pla amb **negretes** per als títols dels passos; pots fer servir llistes amb «- ».\n\n"+
   "EXEMPLE DE L'EXTENSIÓ I L'ESTIL QUE VULL (d'una altra combinació, no el copiïs):\n"+EXEMPLE_DEV;
 }
-/* versió sense Claude: desplega la combinació en passos amb una plantilla */
+/* versió sense Claude: desplega la combinació en passos amb textos preparats */
+var DOMMAT={
+ R:"un patró rítmic curt (4 macrotemps) d'una cançó que el grup ja conegui. Primer el diem amb síl·labes de Gordon (du, du de…) i després el fem",
+ M:"un motiu melòdic curt (3 o 4 notes) d'una cançó coneguda. El cantem primer amb síl·laba neutra i després amb síl·labes tonals (do mòbil), sentint on és la tònica, i el fem",
+ H:"una progressió curta i coneguda (tònica – subdominant – dominant – tònica) que el docent toca al piano o a la guitarra, primer sola i després amb una melodia que el grup conegui. La treballem",
+ D:"una frase musical coneguda que el grup sàpiga de memòria, sense indicacions expressives, perquè s'hi puguin afegir. La fem",
+ T:"dos o tres sons ben diferents (instruments, maneres de tocar o colors de veu) que el grup pugui comparar. Els fem",
+ F:"una cançó o peça curta amb una forma clara (A B A o un rondó curt) que el grup ja conegui. La fem",
+ G:"un fragment musical curt que el grup ja conegui bé, perquè l'atenció vagi a la tasca i no a aprendre material nou. El fem"
+};
+var MODHOW={veu:"cantant",ins:"als instruments",cos:"amb percussió corporal",mov:"amb el moviment, per l'espai",tec:"amb el looper o la DAW"};
+var AGRP=[
+ "Cadascú treballa al seu ritme; el docent passa pels llocs i escolta cada alumne individualment.",
+ "Per parelles: un fa la tasca i l'altre l'escolta i li diu què ha sentit; després canvien els papers.",
+ "En grups de tres, cadascú té un paper diferent, i a cada volta els papers roten.",
+ "En grups de 4 a 6, decideixen qui fa cada part i assagen junts; un membre fa de director intern.",
+ "Tot el grup alhora, en rotllana, perquè tothom es vegi i s'escolti."
+];
+var FMTP={
+ "Imitació i pràctica repetitiva":"El docent fa un model curt i el grup el repeteix immediatament, en cicles curts i sense aturar-se entre repeticions. Quan surt bé, el model canvia lleugerament i es torna a començar.",
+ "Jocs":"Ho convertim en un joc amb una norma clara. Qui s'equivoca no queda eliminat: passa a fer de jutge o de director. El joc es fa en rondes curtes perquè tothom hi participi diverses vegades.",
+ "Tallers de capes":"Repartim la música en capes i cada grup en fa una. Comencem amb una sola capa i n'anem afegint; cada grup ha de mantenir la seva mentre sent les altres. A cada volta, els grups canvien de capa.",
+ "Improvisació guiada":"Abans de començar fixem unes regles clares (què es pot fer servir i què no). Cada alumne improvisa per torns dins d'un marc que no s'atura (un ostinato, un bordó o el pols del grup). Després de cada torn, el grup diu si s'han respectat les regles.",
+ "Composició exprés":"Cada grup té pocs minuts per fixar una peça molt curta amb les condicions donades. La peça s'ha de poder fer dues vegades igual i explicar en una frase. Al final, cada grup la mostra a la resta.",
+ "Anàlisi activa":"Escoltem un fragment, aturem la música en punts clau i l'alumnat ha de predir o dir què passa abans de continuar escoltant per comprovar-ho. Cada resposta s'ha de justificar amb el que s'ha sentit.",
+ "Reescriptura / transformació":"Agafem el material conegut i el transformem canviant un sol element cada vegada. El grup fa l'original i la versió nova seguides, i explica què ha canviat i com sona diferent.",
+ "Lectura i dictat":"Primer ho fem de memòria i d'oïda; només quan surt bé passem a llegir-ho o escriure-ho. Per al dictat: escoltar, cantar-ho, memoritzar-ho i, al final, escriure-ho.",
+ "Relleus / rotació de rols":"En rotllana, un alumne fa de director i decideix qui entra i quan, amb gestos acordats abans. A cada volta, el rol de director passa a un altre alumne, de manera que tothom dirigeix almenys una vegada.",
+ "Projecte / performance breu":"Cada grup prepara una versió final i la presenta a la resta. Abans de començar diuen què han treballat; després, el públic comenta una cosa que ha funcionat i una que es podria millorar."
+};
+var FMTMIN={"Imitació i pràctica repetitiva":5,"Jocs":7,"Tallers de capes":7,"Improvisació guiada":7,"Composició exprés":10,"Anàlisi activa":7,"Reescriptura / transformació":7,"Lectura i dictat":7,"Relleus / rotació de rols":7,"Projecte / performance breu":10};
+var PARP={
+ "Temporal / estructural":"com canvia el caràcter quan canvia el temps o la llargada",
+ "Melòdic":"què passa amb la direcció i el final de la melodia",
+ "Harmònic":"com canvia la sensació de tensió i repòs",
+ "Rítmic":"on se senten ara el pols i l'accent",
+ "Dinàmic / articulatori":"com canvia l'expressió",
+ "Tímbric":"com canvia el color del so",
+ "Textura":"quantes coses sonen alhora i qui porta la melodia",
+ "Espai":"com canvia el que se sent quan canvia la posició",
+ "Cognitiu":"què ha costat més de mantenir"
+};
+var PALP={
+ "Temps":"Comencem amb fragments d'un sol pols, molt curts i fàcils de recordar, i els allarguem fins a 4 pulsos quan el grup ja els domina.",
+ "Capes":"Comencem amb una sola veu o capa. Quan surt sola, n'afegim una segona i després una tercera, i cada grup ha de mantenir la seva sense perdre's.",
+ "Mètrica":"Comencem en un compàs simple, binari (du de). Quan surt bé, ho passem a un compàs compost, ternari (du da di), i finalment a un compàs mixt com el 5/8 (du be du ba bi).",
+ "Ritme harmònic":"Comencem amb canvis d'acord lents, un cada 4 pulsos, i els anem fent més ràpids: cada 2 pulsos i, al final, cada pols.",
+ "Guia":"Comencem amb una ajuda que sosté el grup (un bordó, un metrònom o una referència visual a la pissarra) i, quan surt bé, la traiem perquè el grup ho mantingui sol.",
+ "Material":"Comencem amb material que el grup ja coneix bé i, quan la tasca surt, la repetim amb material nou que no han treballat mai.",
+ "Suport":"Comencem llegint de la partitura o de la pissarra i anem esborrant fragments fins que el grup ho fa de memòria."
+};
+var ESCP=[
+ "Cada grup ho representa amb dibuixos o símbols propis, sense notació convencional. Després comparem les representacions i mirem si es poden llegir les unes a les altres.",
+ "Per sota del material, escriuen la funció de cada acord amb notació funcional, i comproven cantant o tocant que el que han escrit és el que sona.",
+ "Dibuixen una línia de temps amb els pulsos i hi marquen on canvia l'acord i on hi ha la cadència.",
+ "Escriuen el baix i indiquen amb fletxes com es mou cada veu d'un acord al següent.",
+ "Fan un diagrama o mapa de l'activitat (forma, tensió, capes) que una altra persona pogués seguir mentre escolta.",
+ "Escriuen la melodia amb els acords a sobre i les indicacions de forma, com un full de cançó.",
+ "Transcriuen el fragment complet (melodia, baix i acords) i hi afegeixen un comentari breu del que han après.",
+ "En deixen constància amb una eina digital per poder-ho recuperar a la sessió següent."
+];
+function cap(t){ return t.charAt(0).toUpperCase()+t.slice(1); }
 function devTemplate(){
-  var r=summary(), P=[];
-  var who=r.agr? {0:"individualment",1:"per parelles",2:"en tríades",3:"en petits grups",4:"tot el grup"}[S.agr]:"en el grup";
-  P.push("**1. Presentar el material (tot el grup).** El docent presenta "+(r.que?plain(r.que):"el contingut")+" amb un exemple musical conegut i el grup el practica fins que surt sol.");
-  if(r.com) P.push("**2. La tasca ("+who+").** "+plain(r.com).charAt(0).toUpperCase()+plain(r.com).slice(1)+(r.agrO?" (agrupament: "+plain(r.agrO)+")":"")+".");
-  if(r.fmt) P.push("**3. Organització: "+lc(r.fmt.n)+".** "+(r.fmtO?"Ho fem com a "+plain(r.fmtO)+".":(r.fmt.d||"")));
-  if(r.par) P.push("**4. Variants.** A cada ronda canviem "+(r.parO?plain(r.parO):"un paràmetre "+lc(r.par.n))+", i el grup ha de dir què ha canviat.");
-  if(r.pal) P.push("**5. Pujar el repte.** "+PALT[r.pal.n].charAt(0).toUpperCase()+PALT[r.pal.n].slice(1)+(r.palO?". També: "+plain(r.palO):"")+".");
-  if(r.esc) P.push("**6. Deixar-ne rastre.** Ho anotem amb "+(r.escO?plain(r.escO):lc(r.esc.n.replace(/^\d · /,"")))+".");
+  var r=summary(), P=[], n=1;
+  var X=r.que?plain(r.que):"el contingut triat";
+  var dom=(xTags()||"G").charAt(0);
+  var whoT=r.agr? {0:"individualment",1:"per parelles",2:"en tríades",3:"en petits grups",4:"tot el grup"}[S.agr]:"en grups";
+  P.push("**"+(n++)+". Preparar el material (tot el grup, 4 min).** Partim "+(/^[aeiouh]/i.test(DOMMAT[dom])?"d'":"de ")+DOMMAT[dom]+" "+MODHOW[r.mod.id]+", fins que surti sense pensar-hi. Així, quan arribi la tasca, l'atenció pot anar a "+X+".");
+  var com=r.com?plain(r.com):null, ag=r.agr?AGRP[S.agr]+(r.agrO&&S.agr>0?" Com s'hi organitzen: "+plain(r.agrO)+".":""):"";
+  var step2={
+   A:"**"+n+". Fer-ho sonar ("+whoT+", 5 min).** L'objectiu és fer sonar bé "+X+(com?", amb aquesta tasca: "+com:"")+". "+ag+" Abans de passar al pas següent, ho han de poder fer dues vegades seguides sense aturar-se.",
+   B:"**"+n+". Escoltar i reconèixer ("+whoT+", 5 min).** El docent, o un alumne, fa sonar diversos exemples i l'alumnat ha de reconèixer "+X+"."+(com?" Per mostrar-ho: "+com+".":"")+" "+ag+" Després de cada exemple, comprovem en veu alta qui ho ha encertat i per què.",
+   C:"**"+n+". Inventar ("+whoT+", 7 min).** Ara els toca crear a partir de "+X+(com?": "+com:"")+". "+ag+" Han d'acabar amb una proposta curta que puguin repetir igual dues vegades.",
+   D:"**"+n+". Entendre i explicar ("+whoT+", 5 min).** L'alumnat ha d'explicar "+X+(com?", i ho fa així: "+com:"")+". "+ag+" Cada explicació ha d'anar acompanyada d'un exemple que soni."
+  }[r.comp.id];
+  P.push(step2.replace(/\s+/g," ").replace(" .",".")); n++;
+  if(r.fmt) P.push("**"+(n++)+". "+r.fmt.n+" ("+FMTMIN[r.fmt.n]+" min).** "+FMTP[r.fmt.n]+(r.fmtO?" Concretament: "+plain(r.fmtO)+".":""));
+  if(r.par) P.push("**"+(n++)+". Variants (5 min).** Repetim l'activitat dues o tres vegades més, i cada vegada canviem un element "+(r.par.n==="Espai"?"de l'espai":"de tipus "+lc(r.par.n.split(" / ")[0]))+(r.parO?": "+plain(r.parO):"")+". Abans de cada ronda anunciem el canvi; després, el grup comenta "+PARP[r.par.n]+".");
+  if(r.pal) P.push("**"+(n++)+". Pujar el repte.** "+PALP[r.pal.n]+(r.palO?" Si encara cal més repte: "+plain(r.palO)+".":"")+" La consigna es manté igual: només canvia la dificultat.");
+  if(r.esc) P.push("**"+(n++)+". Deixar-ne rastre (3 min).** "+ESCP[S.esc]+(r.escO?" Concretament: "+plain(r.escO)+".":""));
+  var bad=document.querySelectorAll("#flow .warn").length;
+  if(bad) P.push("Nota: algun element marcat com a «no encaixa» s'ha d'adaptar abans de fer l'activitat.");
   return P.join("\n\n");
 }
 var SAMPLE=null, devCtl=null;
@@ -622,7 +694,7 @@ var SAMPLE=null, devCtl=null;
 el("devbtn").onclick=async function(){
   if(!S.comp){ el("devstate").textContent="Tria primer una casella de la matriu."; return; }
   var box=el("dev"); box.hidden=false; DEVSIG=sigNow();
-  if(!SAMPLE){ DEVTXT=devTemplate(); box.innerHTML=mdToHTML(DEVTXT); el("devstate").textContent="Versió esquemàtica"; return; }
+  if(!SAMPLE){ DEVTXT=devTemplate(); box.innerHTML=mdToHTML(DEVTXT); el("devstate").textContent=""; return; }
   if(devCtl) devCtl.abort();
   devCtl=new AbortController(); var btn=this; btn.disabled=true; el("devstate").textContent="Desenvolupant…"; box.innerHTML="";
   try{
@@ -631,7 +703,7 @@ el("devbtn").onclick=async function(){
   }catch(e){
     if(e&&e.text){ DEVTXT=e.text; box.innerHTML=mdToHTML(e.text); }
     else { DEVTXT=devTemplate(); box.innerHTML=mdToHTML(DEVTXT); }
-    el("devstate").textContent=(e&&e.code==="rate_limited")?"Massa peticions: torna-ho a provar d'aquí a una estona.":"No s'ha pogut desenvolupar amb Claude; tens la versió esquemàtica.";
+    el("devstate").textContent=(e&&e.code==="rate_limited")?"Massa peticions: torna-ho a provar d'aquí a una estona.":"No s'ha pogut desenvolupar amb Claude; tens la versió preparada sense Claude.";
   }finally{ btn.disabled=false; }
 };
 
